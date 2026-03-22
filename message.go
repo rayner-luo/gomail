@@ -311,6 +311,30 @@ func (m *Message) appendFile(list []*file, name string, settings []FileSetting) 
 	return append(list, f)
 }
 
+func (m *Message) appendBytesFile(list []*file, name string, content []byte, settings []FileSetting) []*file {
+	f := &file{
+		Name:   filepath.Base(name),
+		Header: make(map[string][]string),
+		CopyFunc: func(w io.Writer) error {
+			b := bytes.NewReader(content)
+			if _, err := io.Copy(w, b); err != nil {
+				return err
+			}
+			return nil
+		},
+	}
+
+	for _, s := range settings {
+		s(f)
+	}
+
+	if list == nil {
+		return []*file{f}
+	}
+
+	return append(list, f)
+}
+
 // Attach attaches the files to the email.
 func (m *Message) Attach(filename string, settings ...FileSetting) {
 	m.attachments = m.appendFile(m.attachments, filename, settings)
@@ -319,4 +343,9 @@ func (m *Message) Attach(filename string, settings ...FileSetting) {
 // Embed embeds the images to the email.
 func (m *Message) Embed(filename string, settings ...FileSetting) {
 	m.embedded = m.appendFile(m.embedded, filename, settings)
+}
+
+// EmbedBytes embeds the images to the email.
+func (m *Message) EmbedBytes(name string, content []byte, settings ...FileSetting) {
+	m.embedded = m.appendBytesFile(m.embedded, name, content, settings)
 }
